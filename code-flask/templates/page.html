@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<h1>Partage de frais</h1>
+
+
+<h2>Groupes</h2>
+<ul>
+  {% for groupe in groupes %}
+    <li>{{ groupe["nom"] }} début: {{ groupe["date_debut"] }} fin: {{ groupe["date_fin"] }}</li>
+
+  {% endfor %}
+</ul>
+
+<form method="post" action="/groupes">
+  <input name="nom" placeholder="Nom" required>
+  <input type ="date" name="date_debut" placeholder="Date de début" required>
+  <input type = "date" name="date_fin" placeholder="Date de fin" required>
+  <button type ="submit">Créer le groupe</button>
+</form>
+
+
+<h2>Membres</h2>
+<ul>
+  {% for membre in membres %}
+    <li>{{ membre["nom"] }}</li>
+  {% endfor %}
+</ul>
+
+<form method="post" action="/membres">
+  <input name="nom" placeholder="Nom" required>
+  <button>Ajouter un membre</button>
+</form>
+

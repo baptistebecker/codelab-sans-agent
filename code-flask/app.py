@@ -1,23 +1,7 @@
-from flask import Flask, redirect, render_template_string, request
+from flask import Flask, redirect, render_template, request
 
 from base import ouvrir_base
-
-# Le HTML de la page.
-PAGE = """
-<h1>Partage de frais</h1>
-
-<h2>Membres</h2>
-<ul>
-  {% for membre in membres %}
-    <li>{{ membre["nom"] }}</li>
-  {% endfor %}
-</ul>
-
-<form method="post" action="/membres">
-  <input name="nom" placeholder="Nom" required>
-  <button>Ajouter</button>
-</form>
-"""
+from calculi import *
 
 app = Flask(__name__)
 
@@ -27,7 +11,8 @@ app = Flask(__name__)
 def accueil():
     with ouvrir_base() as conn:
         membres = conn.execute("SELECT nom FROM membres").fetchall()
-    return render_template_string(PAGE, membres=membres)
+        groupes = conn.execute("SELECT nom FROM groupes").fetchall()
+    return render_template('page.html', membres=membres, groupes=groupes)
 
 
 # Exemple : reçoit le formulaire et ajoute un membre au groupe 1.
@@ -39,7 +24,16 @@ def ajouter_membre():
     return redirect("/")
 
 
-# Ajoutez vos fonctions ici. Le HTML va dans PAGE.
+
+@app.post("/groupes")
+def ajouter_groupe():
+    nom_groupe = request.form["nom"]
+    date_debut = request.form["date_debut"]
+    date_fin = request.form["date_fin"]
+    
+    with ouvrir_base() as conn:
+        conn.execute("INSERT INTO groupes (nom, date_debut, date_fin) VALUES (?, ?, ?)", [nom_groupe, date_debut, date_fin])
+    return redirect("/")
 
 
 if __name__ == "__main__":
