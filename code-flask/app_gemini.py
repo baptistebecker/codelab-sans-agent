@@ -249,12 +249,12 @@ PAGE = """
                 <div class="grid">
                     <div class="form-group">
                         <label>Libellé</label>
-                        <input name="libelle" placeholder="ex: Restaurant, Courses..." required>
+                        <input name="libelle" placeholder="ex: Restaurant, Courses...">
                     </div>
 
                     <div class="form-group">
                         <label>Type</label>
-                        <input name="categorie" placeholder="ex: Nourriture, Transport,..." required>
+                        <input name="categorie" placeholder="ex: Nourriture, Transport,...">
                     </div>
 
                     <div class="form-group">
@@ -276,7 +276,7 @@ PAGE = """
                 </div>
 
                 <div class="form-group">
-                    <label>Participants</label>
+                    <label>Pour</label>
                     <div class="checkbox-group">
                         {% for m in membres %}
                             <label class="checkbox-label">
@@ -288,6 +288,7 @@ PAGE = """
                 </div>
 
                 <button type="submit" style="margin-top: 0.5rem;">Enregistrer la dépense</button>
+                <button type="submit" formaction="/remboursement" style="margin-top: 0.5rem; background-color: var(--success);">Remboursement</button>
             </form>
         </div>
 
@@ -499,6 +500,57 @@ def ajouter_depense():
 
     return redirect(url_for("accueil", groupe_id=groupe_id))
 
+@app.post("/remboursement")
+def ajouter_remboursement():
+    groupe_id = request.form.get("groupe_id", type=int)
+    montant_raw = request.form.get("montant", type=float, default=0.0)
+    date_str = request.form.get("date")
+    payeur_id = request.form.get("payeur_id", type=int)
+    participants_ids = [int(p) for p in request.form.getlist("participants")]
+
+    montant_centimes = int(round(montant_raw * 100))
+
+    with ouvrir_base() as conn:
+        groupe = conn.execute("SELECT * FROM groupes WHERE id = ?", [groupe_id]).fetchone()
+        membres = conn.execute("SELECT id, nom FROM membres WHERE groupe_id = ?", [groupe_id]).fetchall()
+        noms_par_id = {m["id"]: m["nom"] for m in membres}
+        membres_ids = list(noms_par_id.keys())
+
+        try:
+            valider_depense(
+                montant_centimes,
+                date_str,
+                groupe["date_debut"],
+                groupe["date_fin"],
+                payeur_id,
+                participants_ids,
+                membres_ids
+            )
+
+            # Construction automatique de la catégorie et du libellé avec les prénoms
+            categorie = "Remboursement"
+            payeur_nom = noms_par_id.get(payeur_id, str(payeur_id))
+            participants_noms = ", ".join(noms_par_id.get(p_id, str(p_id)) for p_id in participants_ids)
+            libelle = f"{payeur_nom} -> {participants_noms}"
+
+            # Insertion de la dépense
+            cursor = conn.execute(
+                "INSERT INTO depenses (groupe_id, categorie, libelle, montant_centimes, date, payeur_id) VALUES (?, ?, ?, ?, ?, ?)",
+                [groupe_id, categorie, libelle, montant_centimes, date_str, payeur_id]
+            )
+            depense_id = cursor.lastrowid
+
+            # Insertion des participants (l'ordre d'ajout est conservé)
+            for p_id in participants_ids:
+                conn.execute(
+                    "INSERT INTO participants (depense_id, membre_id) VALUES (?, ?)",
+                    [depense_id, p_id]
+                )
+
+        except DepenseInvalideError as e:
+            flash(str(e))
+
+    return redirect(url_for("accueil", groupe_id=groupe_id))
 
 @app.post("/depenses/<int:depense_id>/supprimer")
 def supprimer_depense(depense_id):
