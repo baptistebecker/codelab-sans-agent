@@ -251,6 +251,12 @@ PAGE = """
                         <label>Libellé</label>
                         <input name="libelle" placeholder="ex: Restaurant, Courses..." required>
                     </div>
+
+                    <div class="form-group">
+                        <label>Type</label>
+                        <input name="categorie" placeholder="ex: Nourriture, Transport,..." required>
+                    </div>
+
                     <div class="form-group">
                         <label>Montant (€)</label>
                         <input type="number" step="0.01" name="montant" placeholder="0.00" required>
@@ -293,6 +299,7 @@ PAGE = """
                     <thead>
                         <tr>
                             <th>Date</th>
+                            <th>Type</th>
                             <th>Libellé</th>
                             <th>Montant</th>
                             <th>Payé par</th>
@@ -304,7 +311,8 @@ PAGE = """
                         {% for d in depenses_affichage %}
                             <tr>
                                 <td>{{ d.date }}</td>
-                                <td><strong>{{ d.libelle }}</strong></td>
+                                <td><strong>{{ d.categorie }}</strong></td>
+                                <td>{{ d.libelle }}</td>
                                 <td>{{ d.montant_euros }} €</td>
                                 <td>{{ d.payeur_nom }}</td>
                                 <td><small>{{ d.participants_noms }}</small></td>
@@ -377,6 +385,7 @@ def accueil():
 
                 depenses_affichage.append({
                     "id": d["id"],
+                    "categorie": d["categorie"],
                     "libelle": d["libelle"],
                     "montant_euros": f"{d['montant_centimes'] / 100:.2f}",
                     "date": d["date"],
@@ -445,6 +454,7 @@ def ajouter_membre():
 @app.post("/depenses")
 def ajouter_depense():
     groupe_id = request.form.get("groupe_id", type=int)
+    categorie = request.form.get("categorie", type=str)
     libelle = request.form.get("libelle")
     montant_raw = request.form.get("montant", type=float, default=0.0)
     date_str = request.form.get("date")
@@ -472,8 +482,8 @@ def ajouter_depense():
 
             # Insertion de la dépense
             cursor = conn.execute(
-                "INSERT INTO depenses (groupe_id, libelle, montant_centimes, date, payeur_id) VALUES (?, ?, ?, ?, ?)",
-                [groupe_id, libelle, montant_centimes, date_str, payeur_id]
+                "INSERT INTO depenses (groupe_id, categorie, libelle, montant_centimes, date, payeur_id) VALUES (?, ?, ?, ?, ?, ?)",
+                [groupe_id, categorie, libelle, montant_centimes, date_str, payeur_id]
             )
             depense_id = cursor.lastrowid
 

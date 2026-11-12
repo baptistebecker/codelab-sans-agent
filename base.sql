@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS membres (
 );
 CREATE TABLE IF NOT EXISTS depenses (
     id INTEGER PRIMARY KEY,
+    categorie TEXT NOT NULL,
     groupe_id INTEGER NOT NULL REFERENCES groupes(id) ON DELETE CASCADE,
     libelle TEXT NOT NULL,
     montant_centimes INTEGER NOT NULL,
