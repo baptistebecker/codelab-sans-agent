@@ -416,14 +416,28 @@ def creer_groupe():
     return redirect(url_for("accueil"))
 
 
+
+
 @app.post("/membres")
 def ajouter_membre():
-    nom = request.form.get("nom")
+    nom = request.form.get("nom", "").strip()  # .strip() enlève les espaces inutiles avant/après
     groupe_id = request.form.get("groupe_id", type=int)
 
     if nom and groupe_id:
         with ouvrir_base() as conn:
-            conn.execute("INSERT INTO membres (groupe_id, nom) VALUES (?, ?)", [groupe_id, nom])
+            # On vérifie si le nom existe déjà dans ce groupe (insensible à la casse avec LOWER)
+            existant = conn.execute(
+                "SELECT id FROM membres WHERE groupe_id = ? AND LOWER(nom) = LOWER(?)",
+                [groupe_id, nom]
+            ).fetchone()
+
+            if existant:
+                flash(f"Le membre '{nom}' fait déjà partie de ce groupe.")
+            else:
+                conn.execute(
+                    "INSERT INTO membres (groupe_id, nom) VALUES (?, ?)",
+                    [groupe_id, nom]
+                )
 
     return redirect(url_for("accueil", groupe_id=groupe_id))
 
